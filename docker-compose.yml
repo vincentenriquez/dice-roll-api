@@ -1,0 +1,11 @@
+services:
+  sqlite-web:
+    image: coleifer/sqlite-web
+    container_name: dice-roll-sqlite-web
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./database:/data
+    environment:
+      - SQLITE_DATABASE=database.sqlite
+    restart: unless-stopped
