@@ -2,74 +2,54 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
+use App\Http\Requests\RegisterRequest;
+use App\Http\Requests\LoginRequest;
+use App\Services\AuthService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
-use App\Http\Requests;
 
 class AuthController extends Controller
 {
-    public function register(Request $request)
+    public function __construct(private AuthService $authService) {}
+
+    public function register(RegisterRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8',
-        ]);
+        $validated = $request->validated();
 
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => $validated['password'], // auto-hashed by the 'hashed' cast
-        ]);
-
-        $user->refresh();
-
-        //$token = $user->createToken('auth_token')->plainTextToken;
+        $user = $this->authService->register(
+            $validated["name"],
+            $validated["email"],
+            $validated["password"],
+        );
 
         return response()->json([
             'user' => $user,
-            //'token' => $token,
-            'balance' => $user->balance,
         ], 201);
     }
 
-    public function login(Request $request)
+    public function login(LoginRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'email' => 'required|email',
-            'password' => 'required|string',
-        ]);
+        $validated = $request->validated();
 
-        $user = User::where('email', $validated['email'])->first();
-
-        if (! $user || ! Hash::check($validated['password'], $user->password)) {
-            throw ValidationException::withMessages([
-                'email' => ['Invalid credentials'],
-            ]);
-        }
+        $user = $this->authService->login(
+            $validated["email"],
+            $validated["password"],
+        );
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
             'user' => $user,
             'token' => $token,
-            'balance' => $user->balance,
         ]);
     }
 
-    public function logout(Request $request)
+    public function logout(Request $request): JsonResponse
     {
-        $request->user()->tokens()->delete();
+        $this->authService->logout($request->user());
 
         return response()->json([
             'message' => 'Logged out successfully',
         ]);
-    }
-
-    public function me(Request $request)
-    {
-        return response()->json($request->user());
     }
 }

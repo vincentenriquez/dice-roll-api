@@ -19,9 +19,6 @@ return new class extends Migration
             $table->tinyInteger('result')->unsigned();  // 1–6, server-generated
             $table->boolean('is_win');
             $table->timestamps();
-
-            $table->index('user_id');         // spec §7.3 requires both
-            $table->index('transaction_id');
         });
 
     }

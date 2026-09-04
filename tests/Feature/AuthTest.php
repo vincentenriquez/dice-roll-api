@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class AuthTest extends TestCase
 {
@@ -15,14 +15,14 @@ class AuthTest extends TestCase
     public function test_register_creates_user_with_default_balance(): void
     {
         $response = $this->postJson('/api/register', [
-            'name'     => 'Vincent',
-            'email'    => 'vincent@example.com',
+            'name' => 'Vincent',
+            'email' => 'vincent@example.com',
             'password' => 'password123',
         ]);
 
         // spec §5: 201 on successful registration
         $response->assertCreated(); // 201
-        $response->assertJsonPath('balance', 100); // spec §7.1: default balance = 100
+        $response->assertJsonPath('user.balance', 100); // spec §7.1: default balance = 100
 
         $this->assertDatabaseHas('users', [
             'email' => 'vincent@example.com',
@@ -34,8 +34,8 @@ class AuthTest extends TestCase
         User::factory()->create(['email' => 'vincent@example.com']);
 
         $response = $this->postJson('/api/register', [
-            'name'     => 'Vincent',
-            'email'    => 'vincent@example.com',
+            'name' => 'Vincent',
+            'email' => 'vincent@example.com',
             'password' => 'password123',
         ]);
 
@@ -46,8 +46,8 @@ class AuthTest extends TestCase
     public function test_register_fails_with_short_password(): void
     {
         $response = $this->postJson('/api/register', [
-            'name'     => 'Vincent',
-            'email'    => 'vincent@example.com',
+            'name' => 'Vincent',
+            'email' => 'vincent@example.com',
             'password' => '123',           // min:8 rule
         ]);
 
@@ -68,17 +68,17 @@ class AuthTest extends TestCase
     public function test_login_returns_token_and_balance(): void
     {
         $user = User::factory()->create([
-            'email'    => 'vincent@example.com',
-            'password' => bcrypt('password123'),
+            'email' => 'vincent@example.com',
+            'password' => 'password123',
         ])->fresh();
 
         $response = $this->postJson('/api/login', [
-            'email'    => 'vincent@example.com',
+            'email' => 'vincent@example.com',
             'password' => 'password123',
         ]);
 
         $response->assertOk(); // 200
-        $response->assertJsonStructure(['user', 'token', 'balance']);
+        $response->assertJsonStructure(['user', 'token']);
 
         // Token must actually be stored in DB
         $this->assertDatabaseCount('personal_access_tokens', 1);
@@ -87,12 +87,12 @@ class AuthTest extends TestCase
     public function test_login_fails_with_wrong_password(): void
     {
         User::factory()->create([
-            'email'    => 'vincent@example.com',
-            'password' => bcrypt('correct_password'),
+            'email' => 'vincent@example.com',
+            'password' => 'correct_password',
         ]);
 
         $response = $this->postJson('/api/login', [
-            'email'    => 'vincent@example.com',
+            'email' => 'vincent@example.com',
             'password' => 'wrong_password',
         ]);
 
@@ -103,7 +103,7 @@ class AuthTest extends TestCase
     public function test_login_fails_with_nonexistent_email(): void
     {
         $response = $this->postJson('/api/login', [
-            'email'    => 'nobody@example.com',
+            'email' => 'nobody@example.com',
             'password' => 'password123',
         ]);
 
@@ -126,9 +126,9 @@ class AuthTest extends TestCase
         $this->assertDatabaseCount('personal_access_tokens', 3);
 
         $this->withToken($token)
-             ->postJson('/api/logout')
-             ->assertOk()
-             ->assertJsonPath('message', 'Logged out successfully');
+            ->postJson('/api/logout')
+            ->assertOk()
+            ->assertJsonPath('message', 'Logged out successfully');
 
         // spec: tokens()->delete() wipes ALL tokens for this user
         $this->assertDatabaseCount('personal_access_tokens', 0);
@@ -137,6 +137,6 @@ class AuthTest extends TestCase
     public function test_logout_requires_authentication(): void
     {
         $this->postJson('/api/logout')
-             ->assertUnauthorized(); // 401
+            ->assertUnauthorized(); // 401
     }
 }

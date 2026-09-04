@@ -12,7 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->integer('balance')->default(100)->after('password');
+            $table->unsignedBigInteger('win_streak')->default(0)->after('balance');
+            $table->integer('biggest_win')->default(0)->after('win_streak');
         });
     }
 
@@ -22,7 +23,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('balance');
+            $table->dropColumn(['win_streak', 'biggest_win']);
         });
     }
 };

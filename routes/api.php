@@ -1,18 +1,18 @@
 <?php
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\RollController;
 use App\Http\Controllers\BalTranController;
+use App\Http\Controllers\RollController;
+use Illuminate\Support\Facades\Route;
 
-Route::post('/register', [AuthController::class, 'register'])->name('AuthController.register');
-Route::post('/login', [AuthController::class, 'login'])->name('AuthController.login');
+Route::post('/register', [AuthController::class, 'register'])->name('auth.register');
+Route::post('/login', [AuthController::class, 'login'])->name('auth.login');
 
 Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/logout', [AuthController::class,'logout'])->name('AuthController.logout');
-    Route::post('/rolls', [RollController::class, 'store'])->name('RollController.store');
-    Route::get('/rolls', [RollController::class, 'index'])->name('RollController.index');
-    Route::get('/me/balance', [BalTranController::class, 'balance'])->name('BalTranController.balance');
-    Route::get('/me/transactions', [BalTranController::class, 'transactions'])->name('BalTranController.transactions');
-});        
+    Route::post('/logout', [AuthController::class, 'logout'])->name('auth.logout');
+    Route::post('/rolls', [RollController::class, 'store'])->name('rolls.store');
+    Route::get('/rolls', [RollController::class, 'index'])->name('rolls.index');
+    Route::get('/me/balance', [BalTranController::class, 'balance'])->name('me.balance');
+    Route::get('/me/transactions', [BalTranController::class, 'transactions'])->name('me.transactions');
+    Route::post('/me/balance/reset', [BalTranController::class, 'resetBalance'])->name('balance.reset');
+});

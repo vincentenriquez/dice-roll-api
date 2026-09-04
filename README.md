@@ -7,13 +7,23 @@ A simple single-player dice game API built with Laravel + Sanctum + SQLite.
 ```bash
 git clone <repo-url>
 cd dice-roll-api
+
+# Install dependencies
 composer install
+
+# Setup environment variables
 cp .env.example .env
 php artisan key:generate
+
+# Setup the database
 touch database/database.sqlite
-php artisan migrate
+php artisan migrate --seed
+
+# Start the server
 php artisan serve
 ```
+
+> **📚 API Documentation:** Once the server is running, visit [http://127.0.0.1:8000/docs/](http://127.0.0.1:8000/docs/) to view the full interactive API documentation.
 
 ## API Endpoints
 
@@ -24,8 +34,9 @@ php artisan serve
 | POST | /api/logout | Yes | Revoke token |
 | POST | /api/rolls | Yes | Play a round |
 | GET | /api/rolls | Yes | List your game history |
-| GET | /api/me/balance | Yes | Check your balance |
+| GET | /api/me/balance | Yes | Check balance, win streak & biggest win |
 | GET | /api/me/transactions | Yes | List your transactions |
+| POST | /api/me/balance/reset | Yes | Reset balance to 100 (for testing) |
 
 ## curl Examples
 
@@ -44,11 +55,40 @@ curl -X POST http://localhost:8000/api/rolls \
   -d '{"guess":4,"stake":10}'
 ```
 
-**Check balance:**
+**Check balance & stats:**
 ```bash
 curl http://localhost:8000/api/me/balance \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
+
+**Reset balance:**
+```bash
+curl -X POST http://localhost:8000/api/me/balance/reset \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+## Architecture
+
+The project follows **Laravel Clean Code** principles:
+
+```
+Route → FormRequest (validation) → Controller → Service → Model
+```
+
+| Layer | Files |
+|---|---|
+| Controllers | `AuthController`, `RollController`, `BalTranController` |
+| Services | `AuthService`, `RollService`, `BalTranService` |
+| FormRequests | `RegisterRequest`, `LoginRequest`, `RollRequest` |
+| Models | `User`, `GameRound`, `Transaction` |
+
+## Game Rules
+
+- Guess a number between **1 and 6**
+- Stake any amount up to your current balance
+- **Win:** Guess correctly → receive **5× your stake** (net gain: 4× stake)
+- **Lose:** Guess wrong → lose your stake
+- Win streak and biggest win are tracked automatically
 
 ## Run Tests
 

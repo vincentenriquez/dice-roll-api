@@ -2,11 +2,11 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
-use App\Models\User;
-use App\Models\Transaction;
 use App\Models\GameRound;
+use App\Models\Transaction;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class RollTest extends TestCase
 {
@@ -27,7 +27,7 @@ class RollTest extends TestCase
         $user = $this->actingUser();
 
         $this->actingAs($user, 'sanctum')
-             ->postJson('/api/rolls', ['guess' => 3, 'stake' => 10]);
+            ->postJson('/api/rolls', ['guess' => 3, 'stake' => 10]);
 
         // spec §8: "Transaction and its GameRound are always created together"
         $this->assertDatabaseCount('transactions', 1);
@@ -45,7 +45,7 @@ class RollTest extends TestCase
         $balanceBefore = $user->balance; // 100
 
         $response = $this->actingAs($user, 'sanctum')
-             ->postJson('/api/rolls', ['guess' => 3, 'stake' => 10]);
+            ->postJson('/api/rolls', ['guess' => 3, 'stake' => 10]);
 
         $response->assertOk();
 
@@ -65,21 +65,23 @@ class RollTest extends TestCase
     public function test_win_produces_correct_payout(): void
     {
         $user = $this->actingUser();
+        
+        // Give the user enough balance to survive 30 straight losses
+        $user->update(['balance' => 1000]); 
 
-        $response = $this->actingAs($user, 'sanctum')->postJson('/api/rolls', ['guess' => 3, 'stake' => 10]);
-
-        // Roll until we get a win (≤ 6 attempts, guaranteed to hit eventually)
         for ($i = 0; $i < 30; $i++) {
             $response = $this->actingAs($user, 'sanctum')
                 ->postJson('/api/rolls', ['guess' => 3, 'stake' => 10]);
 
+            // If you hit a 422 here, you can catch it to debug:
+            // $response->assertStatus(200); 
+
             if ($response->json('is_win')) {
-                // spec §6.3: total_win = stake * 5, net_win = total_win - stake
-                // Use orderByDesc('id') — latest() is unreliable when rows share the same created_at timestamp
                 $transaction = Transaction::orderByDesc('id')->first();
-                $this->assertEquals(50, $transaction->total_win);  // 10 * 5
-                $this->assertEquals(40, $transaction->net_win);    // 50 - 10
-                $this->assertEquals(40, $response->json('net_win')); // cross-check response
+                $this->assertEquals(50, $transaction->total_win);  
+                $this->assertEquals(40, $transaction->net_win); 
+                $this->assertEquals(40, $response->json('net_win')); 
+
                 return;
             }
         }
@@ -102,6 +104,7 @@ class RollTest extends TestCase
                 $this->assertEquals(0, $transaction->total_win);
                 $this->assertEquals(-10, $transaction->net_win);
                 $this->assertEquals(-10, $response->json('net_win')); // cross-check response
+
                 return;
             }
         }
@@ -116,7 +119,7 @@ class RollTest extends TestCase
         $user = $this->actingUser(); // balance = 100
 
         $response = $this->actingAs($user, 'sanctum')
-             ->postJson('/api/rolls', ['guess' => 3, 'stake' => 9999]);
+            ->postJson('/api/rolls', ['guess' => 3, 'stake' => 9999]);
 
         // spec §5, §8: "422 if stake > balance"
         $response->assertUnprocessable(); // 422
@@ -134,14 +137,14 @@ class RollTest extends TestCase
         $user = $this->actingUser();
 
         $this->actingAs($user, 'sanctum')
-             ->postJson('/api/rolls', ['guess' => 7, 'stake' => 10])
-             ->assertUnprocessable()
-             ->assertJsonValidationErrors(['guess']);
+            ->postJson('/api/rolls', ['guess' => 7, 'stake' => 10])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['guess']);
     }
 
     public function test_unauthenticated_roll_is_rejected(): void
     {
         $this->postJson('/api/rolls', ['guess' => 3, 'stake' => 10])
-             ->assertUnauthorized(); // 401
+            ->assertUnauthorized(); // 401
     }
 }
